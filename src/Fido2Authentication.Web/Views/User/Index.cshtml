@@ -1,0 +1,29 @@
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="card overflow-hidden">
+    <div class="card-body">
+        <div class="row">
+            <div class="col">
+                <div class="card-body">
+                    <table id="user-passkeys-table" class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>E-mail</th>
+                                <th>Date registered</th>
+                                <th>Options</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/js/pages/user.js"></script>
+}

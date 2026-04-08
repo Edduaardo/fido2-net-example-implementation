@@ -1,0 +1,164 @@
+$(() => {
+    // $('#change-password-form').on('submit', (event) => {
+    //     if (!event.currentTarget.checkValidity()) {
+    //         event.preventDefault()
+    //         event.stopPropagation()
+
+    //         $(event.currentTarget).addClass('was-validated')
+    //     }
+    // })
+
+    // $("#change-password-form").validate({
+    //     rules: {
+    //         ConfirmNewPassword: {
+    //             equalTo: "#newPassword"
+    //         }
+    //     }
+    // });
+
+    const validationSettings = $.data($('#change-password-form')[0], 'validator').settings
+    // validationSettings.onfocusout = (element) => {
+    //     if (!$('#change-password-form').validate().element(element)) {
+    //        $(element).addClass('is-invalid')
+    //     } else {
+    //        $(element).addClass('is-valid')
+    //     }
+    // }
+    validationSettings.onfocusout = null
+    validationSettings.onkeyup = null
+
+    // $.validator.addMethod('equaltocustom', (value, element, params) => {
+    //     console.log(params)
+    //     debugger
+    //     // var genre = $(params[0]).val(), year = params[1], date = new Date(value);
+
+    //     // // The Classic genre has a value of '0'.
+    //     // if (genre && genre.length > 0 && genre[0] === '0') {
+    //     //     // The release date for a Classic is valid if it's no greater than the given year.
+    //     //     return date.getUTCFullYear() <= year;
+    //     // }
+    //     return false
+    //     return true;
+    // })
+
+    // $.validator.unobtrusive.adapters.add('equaltocustom', ['year'], (options) => {
+    //     console.log(options)
+    //     debugger
+    //     var element = $(options.form).find('input#confimNewPassword')[0];
+
+    //     options.rules['equalto'] = [element, options.params['year']];
+    //     options.messages['equalto'] = options.message;
+    // })
+
+    $('#change-password-form').bind('invalid-form.validate', () => {
+        $("#change-password-form").addClass('was-validated')
+    })
+
+    $('#user-passkeys-table').DataTable({
+        columns: [
+            { data: 'name' },
+            {
+                data: 'creationDate',
+                render: (value) => luxon
+                    .DateTime
+                    .fromISO(value)
+                    .toLocaleString(luxon.DateTime.DATETIME_SHORT)
+            },
+            {
+                data: 'id',
+                render: () => `<button type="button" title="Remove" class="btn btn-danger" onclick="deletePasskey(this)"><i class="bi bi-trash"></i></button>`
+            }
+        ],
+        ajax: '/get-user-passkeys'
+    })
+
+    $('#add-passkey').on('click', async () => {
+        const {
+            value: passkeyName,
+            isConfirmed
+        } = await getPasskeyName()
+
+        if (!isConfirmed) return
+
+        debugger
+        let attestationOptions = await fetchAttestationOptions()
+
+        // Turn the challenge back into the accepted format of padded base64
+        attestationOptions.challenge = coerceToArrayBuffer(attestationOptions.challenge);
+        // Turn ID into a UInt8Array Buffer for some reason
+        attestationOptions.user.id = coerceToArrayBuffer(attestationOptions.user.id);
+
+        let credentials = await navigator.credentials.create({
+            publicKey: attestationOptions
+        })
+
+        debugger
+        credentials.name = passkeyName
+        await savePasskey(credentials)
+    })
+})
+
+function getPasskeyName() {
+    return Swal.fire({
+        title: "Give a name for this new Passkey",
+        input: "text",
+        showCloseButton: true,
+        showCancelButton: true,
+        inputValidator: (value) => {
+            if (!value) return 'Please give your passkey a name';
+        }
+    })
+}
+
+function fetchAttestationOptions() {
+    return $.ajax({
+        url: '/passkey-get-attestation-options'
+    })
+}
+
+function savePasskey(credentials) {
+    return $.ajax({
+        url: `/save-passkey/${credentials.name}`,
+        method: 'POST',
+        data: JSON.stringify({
+            id: credentials.id,
+            rawId: coerceToBase64Url(new Uint8Array(credentials.rawId)),
+            type: credentials.type,
+            extensions: credentials.getClientExtensionResults(),
+            response: {
+                attestationObject: coerceToBase64Url(new Uint8Array(credentials.response.attestationObject)),
+                clientDataJSON: coerceToBase64Url(new Uint8Array(credentials.response.clientDataJSON)),
+                transports: credentials.response.getTransports()
+            }
+        }),
+        dataType: 'json',
+        contentType: 'application/json'
+    })
+}
+
+function deletePasskey(event) {
+    Swal.fire({
+        title: "Are you sure?",
+        text: "You won't be able to revert this!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, delete it"
+    }).then((result) => {
+        let passkeysDatatable
+
+        if (result.isConfirmed) {
+            passkeysDatatable = $('#user-passkeys-table').DataTable()
+            $.ajax({
+                url: '/delete-user-passkey',
+                method: 'DELETE',
+                data: {
+                    passkeyId: passkeysDatatable.row($(event).closest('tr')).data().id
+                }
+            }).then(() => {
+                passkeysDatatable.ajax.reload()
+            })
+        }
+    })
+}

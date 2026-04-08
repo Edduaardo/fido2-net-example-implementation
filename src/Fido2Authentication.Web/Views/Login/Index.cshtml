@@ -1,0 +1,41 @@
+@using Fido2Authentication.Web.Models
+
+@model LoginViewModel
+
+@{
+    Layout = "_Layout_Login";
+    ViewData["Title"] = "Login";
+}
+
+<div class="row justify-content-center">
+    <div class="col-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <form id="login-form" asp-action="Login">
+                    <input type="hidden" asp-for="ReturnUrl" />
+                    <div class="form-group">
+                        <label for="exampleInputEmail1">E-mail address</label>
+                        <input asp-for="Login" type="email" class="form-control" id="login" aria-describedby="emailHelp" placeholder="Enter email">
+                        <span class="text-danger" asp-validation-for="Login"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleInputPassword1">Password</label>
+                        <input asp-for="Password" type="password" class="form-control" id="password" placeholder="Password">
+                        <span class="text-danger" asp-validation-for="Password"></span>
+                    </div>
+                    <div class="mb-1 mt-1">
+                        <a id="login-with-passkey" href="#">Login with passkey</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/helpers/base64.js"></script>
+    <script src="~/js/pages/login.js"></script>
+}

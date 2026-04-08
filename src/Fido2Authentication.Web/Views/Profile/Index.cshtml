@@ -1,0 +1,32 @@
+@using Fido2Authentication.Business.Models
+
+@model User
+
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="d-flex">
+    <div class="me-auto">
+        <h5>Your data</h5>
+    </div>
+    <div>
+        <a asp-action="Security"><i class="bi bi-gear"></i> Security settings</a>
+    </div>
+</div>
+<div class="card overflow-hidden">
+    <div class="row border-bottom">
+        <div class="col">
+            <div class="card-body">
+                Name: @Model.Name
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="card-body">
+                E-mail: @Model.Email
+            </div>
+        </div>
+    </div>
+</div>
