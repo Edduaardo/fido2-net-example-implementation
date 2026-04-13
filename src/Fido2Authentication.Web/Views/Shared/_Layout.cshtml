@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link href="https://cdn.datatables.net/v/dt/dt-2.3.7/datatables.min.css" rel="stylesheet" integrity="sha384-wCnlGUpaekN+Mtc+qIoipdqIqe2dvC7hWyzVg8wajZ1sxKnVTbnyBd7pyx7JT0Su" crossorigin="anonymous">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Fido2Authentication.styles.css" asp-append-version="true" />
+    @* <link rel="stylesheet" href="~/Fido2Authentication.styles.css" asp-append-version="true" /> *@
 </head>
 <body>
     <header>
@@ -46,10 +46,9 @@
             @RenderBody()
         </main>
     </div>
-
     <footer class="border-top footer text-muted fixed-bottom">
         <div class="container">
-            &copy; 2026 - Fido2Authentication
+            &copy; @DateTime.Now.Year - Fido2Authentication
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -58,6 +57,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.7.2/build/global/luxon.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    @{ await Html.RenderPartialAsync("_Alert"); }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

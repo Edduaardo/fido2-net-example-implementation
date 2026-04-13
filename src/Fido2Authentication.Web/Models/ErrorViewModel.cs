@@ -1,4 +1,4 @@
-namespace Fido2Authentication.Models;
+namespace Fido2Authentication.Web.Models;
 
 public class ErrorViewModel
 {

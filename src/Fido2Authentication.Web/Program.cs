@@ -1,5 +1,6 @@
 using Fido2Authentication.IoC;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddSerilog((services, loggerConfiguration) => loggerConfiguration
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
 
 builder.RegisterServices();
 

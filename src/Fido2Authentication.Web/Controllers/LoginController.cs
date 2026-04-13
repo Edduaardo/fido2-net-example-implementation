@@ -2,7 +2,9 @@ using System.Net;
 using System.Text;
 using Fido2Authentication.Business.Interfaces;
 using Fido2Authentication.Business.Interfaces.Services;
+using Fido2Authentication.Web.ExtensionMethods;
 using Fido2Authentication.Web.Models;
+using Fido2Authentication.Web.ResponseViewModels;
 using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -12,9 +14,11 @@ namespace Fido2Authentication.Web.Controllers;
 
 [AllowAnonymous]
 public class LoginController(
+    ILogger<LoginController> logger,
     IUserService userService,
     ITokenService tokenService) : Controller
 {
+    private readonly ILogger<LoginController> _logger = logger;
     private readonly IUserService _userService = userService;
     private readonly ITokenService _tokenService = tokenService;
 
@@ -36,19 +40,34 @@ public class LoginController(
         LoginViewModel loginViewModel,
         CancellationToken cancellationToken)
     {
-        var user = await _userService.GetByEmailAsync(loginViewModel.Login, cancellationToken);
-
-        if (_userService.VerifyLogin(user!, loginViewModel.Password))
+        try
         {
-            await _tokenService.LoginUserAsync(user);
+            var user = await _userService.GetByEmailAsync(loginViewModel.Login, cancellationToken);
 
-            if (!string.IsNullOrEmpty(loginViewModel.ReturnUrl))
-                return Redirect(loginViewModel.ReturnUrl);
+            if (user is null)
+                return RedirectToAction("Index")
+                    .ErrorMessage("Username or password may be wrong, try again.");
 
-            return RedirectToAction("Index", "Home");
+            if (_userService.VerifyLogin(user, loginViewModel.Password))
+            {
+                await _tokenService.LoginUserAsync(user!);
+
+                if (!string.IsNullOrEmpty(loginViewModel.ReturnUrl))
+                    return Redirect(loginViewModel.ReturnUrl);
+
+                return RedirectToAction("Index", "Home");
+            }
+
+            return RedirectToAction("Index")
+                .ErrorMessage("Username or password may be wrong, try again.");
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "LoginAsync()");
 
-        return View();
+            return RedirectToAction("Index")
+                .ErrorMessage("An error ocurred, try again later.");
+        }
     }
 
     [HttpGet("get-passkey-assertion-options")]
@@ -69,7 +88,15 @@ public class LoginController(
         }
         catch (Exception ex)
         {
-            throw;
+            _logger.LogError(ex, "GetPasskeyAssertionOptionsAsync()");
+            
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
     }
 
@@ -96,11 +123,27 @@ public class LoginController(
         }
         catch (Fido2VerificationException fido2VerificationException)
         {
-            throw;
+            _logger.LogError(fido2VerificationException, "MakePasskeyAssertionAsync()");
+            
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
         catch (Exception ex)
         {
-            throw;
+            _logger.LogError(ex, "MakePasskeyAssertionAsync()");
+            
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
     }
 

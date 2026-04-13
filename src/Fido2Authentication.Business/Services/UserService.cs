@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Unicode;
 using Fido2Authentication.Business.Interfaces;
 using Fido2Authentication.Business.Interfaces.Repositories;
 using Fido2Authentication.Business.Interfaces.Services;
@@ -23,6 +24,11 @@ public class UserService(
     private readonly IFido2 _fido2 = fido2;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly IPasskeyService _passkeyService = passkeyService;
+
+    public async Task UpdateAsync(User user)
+    {
+        await _userRepository.UpdateAsync(user);
+    }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
@@ -121,7 +127,7 @@ public class UserService(
                 Name = passkeyName,
                 CredentialId = credential.Id,
                 CreationDate = DateTime.Now,
-                ManufactorerGuid = credential.AaGuid,
+                ManufacturerGuid = credential.AaGuid.Equals(Guid.Empty) ? null : credential.AaGuid,
                 SignCount = credential.SignCount,
                 PublicKey = credential.PublicKey,
                 User = await GetByEmailAsync(_httpContextAccessor.HttpContext.User.Identity.Name)
@@ -199,7 +205,7 @@ public class UserService(
     {
         var user = await GetUserByPasskeyIdAsync(passkeyId, cancellationToken);
 
-        user.Passkeys.Remove(user.Passkeys.First(x => x.Id == passkeyId));
+        user!.Passkeys.Remove(user.Passkeys.First(x => x.Id == passkeyId));
 
         await _userRepository.UpdateAsync(user, cancellationToken);
     }

@@ -1,0 +1,14 @@
+@{
+    var messageType = TempData["_alert.type"];
+    var messageTitle = TempData["_alert.title"];
+    var message = TempData["_alert.message"];
+}
+
+@if (message is not null)
+{
+    <script type="text/javascript">
+        $(() => {
+            showToast('@messageType', `@messageTitle`, `@message`)
+        })
+    </script>
+}

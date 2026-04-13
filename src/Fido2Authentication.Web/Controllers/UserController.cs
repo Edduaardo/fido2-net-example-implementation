@@ -1,4 +1,5 @@
 using Fido2Authentication.Business.Interfaces.Services;
+using Fido2Authentication.Web.ResponseViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +10,7 @@ public class UserController(IUserService userService) : Controller
 {
     private readonly IUserService _userService = userService;
 
-    public IActionResult Index()
-    {
-        return View();
-    }
+    public IActionResult Index() => View();
 
     [HttpGet("get-users")]
     public async Task<IActionResult> GetUsersAsync(
@@ -35,7 +33,13 @@ public class UserController(IUserService userService) : Controller
         }
         catch (Exception ex)
         {
-            throw;
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
     }
 }

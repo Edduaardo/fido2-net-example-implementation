@@ -5,38 +5,43 @@ $(() => {
         if (!$('#login-form').validate().element('#login'))
             return
         
-        const assertionOptions = await fetchAssetionOptions(login)
+        let assertionOptions
+        try {
+            assertionOptions = await fetchAssetionOptions(login)
+        } catch (_) {
+            showToastError('An error occurred while trying to get options from the server, please try again later.')
+            return
+        }
 
-        assertionOptions.challenge = coerceToArrayBuffer(assertionOptions.challenge)
-        assertionOptions.allowCredentials.forEach((listItem) => {
-            listItem.id = coerceToArrayBuffer(listItem.id);
-        })
+        // New:
+        assertionOptions = PublicKeyCredential.parseRequestOptionsFromJSON(assertionOptions)
+        // Old:
+        // assertionOptions.challenge = coerceToArrayBuffer(assertionOptions.challenge)
+        // assertionOptions.allowCredentials.forEach(listItem => {
+        //     listItem.id = coerceToArrayBuffer(listItem.id)
+        // })
 
-        const credential = await navigator.credentials.get({
-            publicKey: assertionOptions
-        })
+        let credential
+        try {
+            credential = await navigator.credentials.get({
+                publicKey: assertionOptions
+            })
+        } catch (_) {
+            showToastError('An error occurred while getting credentials, please try again.')
+            return
+        }
 
         credential.userHandle = login
         
         let assertionResult
-        await assertCredential(credential)
-            .then((response) => {
-                assertionResult = response
-            }
-        )
-
-        if (assertionResult.status === 200) window.location = '/Home/Index'
-        else {
-            Swal.fire({
-                title: 'Authentication failed',
-                text: 'Authentication failed, try again later.',
-                //imageUrl: "/images/securitykey.min.svg",
-                showCancelButton: true,
-                showConfirmButton: false,
-                focusConfirm: false,
-                focusCancel: false
-            })
+        try {
+            assertionResult = await assertCredential(credential)
+        } catch(_) {
+            showToastError('An error occurred while verifying your credentials, please try again.')
+            return
         }
+
+        window.location = '/Home'
     })
 
     const validationSettings = $.data($('#login-form')[0], 'validator').settings

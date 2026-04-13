@@ -6,6 +6,7 @@ namespace Fido2Authentication.Business.Interfaces.Services;
 
 public interface IUserService
 {
+    Task UpdateAsync(User user);
     Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<User?> GetUserByPasskeyIdAsync(Guid passkeyId, CancellationToken cancellationToken = default);

@@ -29,7 +29,6 @@ $(() => {
 
     // $.validator.addMethod('equaltocustom', (value, element, params) => {
     //     console.log(params)
-    //     debugger
     //     // var genre = $(params[0]).val(), year = params[1], date = new Date(value);
 
     //     // // The Classic genre has a value of '0'.
@@ -43,7 +42,6 @@ $(() => {
 
     // $.validator.unobtrusive.adapters.add('equaltocustom', ['year'], (options) => {
     //     console.log(options)
-    //     debugger
     //     var element = $(options.form).find('input#confimNewPassword')[0];
 
     //     options.rules['equalto'] = [element, options.params['year']];
@@ -51,7 +49,7 @@ $(() => {
     // })
 
     $('#change-password-form').bind('invalid-form.validate', () => {
-        $("#change-password-form").addClass('was-validated')
+        $('#change-password-form').addClass('was-validated')
     })
 
     $('#user-passkeys-table').DataTable({
@@ -66,7 +64,8 @@ $(() => {
             },
             {
                 data: 'id',
-                render: () => `<button type="button" title="Remove" class="btn btn-danger" onclick="deletePasskey(this)"><i class="bi bi-trash"></i></button>`
+                render: () => `<button type="button" title="Edit passkey name" class="btn btn-info text-white" onclick="editPasskey(this)"><i class="bi bi-pen"></i></button>
+                <button type="button" title="Remove" class="btn btn-danger" onclick="deletePasskey(this)"><i class="bi bi-trash"></i></button>`
             }
         ],
         ajax: '/get-user-passkeys'
@@ -80,19 +79,35 @@ $(() => {
 
         if (!isConfirmed) return
 
-        debugger
-        let attestationOptions = await fetchAttestationOptions()
+        let attestationOptions
+        try {
+            attestationOptions = await fetchAttestationOptions()
+        } catch (_) {
+            showToastError('An error occurred while trying to get options from the server, try again later.')
+            return
+        }
 
+        // New:
+        attestationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(attestationOptions)
+
+        // Old:
         // Turn the challenge back into the accepted format of padded base64
-        attestationOptions.challenge = coerceToArrayBuffer(attestationOptions.challenge);
-        // Turn ID into a UInt8Array Buffer for some reason
-        attestationOptions.user.id = coerceToArrayBuffer(attestationOptions.user.id);
+        // attestationOptions.challenge = coerceToArrayBuffer(attestationOptions.challenge)
+        // attestationOptions.user.id = coerceToArrayBuffer(attestationOptions.user.id)
+        // attestationOptions.excludeCredentials = attestationOptions.excludeCredentials.forEach(excludedCredential => {
+        //     excludedCredential.id = coerceToArrayBuffer(excludedCredential.id)
+        // })
 
-        let credentials = await navigator.credentials.create({
-            publicKey: attestationOptions
-        })
+        let credentials
+        try {
+            credentials = await navigator.credentials.create({
+                publicKey: attestationOptions
+            })
+        } catch (_) {
+            showToastError('An error ocurred while creating credentials, try again.')
+            return
+        }
 
-        debugger
         credentials.name = passkeyName
         await savePasskey(credentials)
     })
@@ -100,8 +115,8 @@ $(() => {
 
 function getPasskeyName() {
     return Swal.fire({
-        title: "Give a name for this new Passkey",
-        input: "text",
+        title: 'Give a name for this new Passkey',
+        input: 'text',
         showCloseButton: true,
         showCancelButton: true,
         inputValidator: (value) => {
@@ -112,7 +127,8 @@ function getPasskeyName() {
 
 function fetchAttestationOptions() {
     return $.ajax({
-        url: '/passkey-get-attestation-options'
+        url: '/passkey-get-attestation-options',
+        method: 'GET'
     })
 }
 
@@ -120,36 +136,45 @@ function savePasskey(credentials) {
     return $.ajax({
         url: `/save-passkey/${credentials.name}`,
         method: 'POST',
-        data: JSON.stringify({
-            id: credentials.id,
-            rawId: coerceToBase64Url(new Uint8Array(credentials.rawId)),
-            type: credentials.type,
-            extensions: credentials.getClientExtensionResults(),
-            response: {
-                attestationObject: coerceToBase64Url(new Uint8Array(credentials.response.attestationObject)),
-                clientDataJSON: coerceToBase64Url(new Uint8Array(credentials.response.clientDataJSON)),
-                transports: credentials.response.getTransports()
-            }
-        }),
+        // New:
+        data: JSON.stringify(credentials.toJSON()),
+        // Old:
+        // data: JSON.stringify({
+        //     id: credentials.id,
+        //     rawId: coerceToBase64Url(new Uint8Array(credentials.rawId)),
+        //     type: credentials.type,
+        //     extensions: credentials.getClientExtensionResults(),
+        //     response: {
+        //         attestationObject: coerceToBase64Url(new Uint8Array(credentials.response.attestationObject)),
+        //         clientDataJSON: coerceToBase64Url(new Uint8Array(credentials.response.clientDataJSON)),
+        //         transports: credentials.response.getTransports()
+        //     }
+        // }),
         dataType: 'json',
         contentType: 'application/json'
+    }).done(() => {
+        $('#user-passkeys-table').DataTable().ajax.reload()
+        showToastSuccess('Passkey saved successfully.')
+    }).catch(() => {
+        showToastError('An error occurred while trying to save the passkey, try again later.')
     })
 }
 
 function deletePasskey(event) {
     Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
+        title: 'Are you sure?',
+        text: 'You won\'t be able to revert this!',
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, delete it"
-    }).then((result) => {
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it'
+    }).then(result => {
         let passkeysDatatable
 
         if (result.isConfirmed) {
             passkeysDatatable = $('#user-passkeys-table').DataTable()
+            
             $.ajax({
                 url: '/delete-user-passkey',
                 method: 'DELETE',
@@ -158,7 +183,37 @@ function deletePasskey(event) {
                 }
             }).then(() => {
                 passkeysDatatable.ajax.reload()
+                showToastSuccess('Passkey deleted.')
             })
         }
+    }).catch(() => {
+        showToastError('An error occurred while trying to delete the passkey, try again later.')
+    })
+}
+
+async function editPasskey(event) {
+    const {
+        value: passkeyName,
+        isConfirmed
+    } = await getPasskeyName()
+
+    if (!isConfirmed) return
+
+    const passkeysDatatable = $('#user-passkeys-table').DataTable()
+
+    $.ajax({
+        url: '/edit-passkey-name',
+        method: 'PUT',
+        data: JSON.stringify({
+            id: passkeysDatatable.row($(event).closest('tr')).data().id,
+            name: passkeyName
+        }),
+        dataType: 'json',
+        contentType: 'application/json'
+    }).done(() => {
+        showToastSuccess('Name successfully changed.')
+        passkeysDatatable.ajax.reload()
+    }).catch(() => {
+        showToastError('An error occurred while trying to change the passkey name, try again later.')
     })
 }

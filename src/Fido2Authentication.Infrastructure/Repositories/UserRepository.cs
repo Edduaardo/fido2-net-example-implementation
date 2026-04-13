@@ -29,22 +29,20 @@ public class UserRepository(DatabaseContext databaseContext) : IUserRepository
         Guid passkeyId,
         CancellationToken cancellationToken = default)
     {
-        return (await _databaseContext.Passkeys
-            .Include(x => x.User)
-            .Where(x => x.Id == passkeyId)
-            .FirstOrDefaultAsync(cancellationToken)
-        )?.User;
+        return await _databaseContext.Users
+            .Include(x => x.Passkeys)
+            .Where(x => x.Passkeys.Any(x => x.Id == passkeyId))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<User?> GetUserByPasskeyCredentialIdAsync(
         byte[] passkeyCredentialId,
         CancellationToken cancellationToken = default)
     {
-        return (await _databaseContext.Passkeys
-            .Include(x => x.User)
-            .Where(x => x.CredentialId.SequenceEqual(passkeyCredentialId))
-            .FirstOrDefaultAsync(cancellationToken)
-        )?.User;
+        return await _databaseContext.Users
+            .Include(x => x.Passkeys)
+            .Where(x => x.Passkeys.Any(y => y.CredentialId.SequenceEqual(passkeyCredentialId)))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task AddAsync(

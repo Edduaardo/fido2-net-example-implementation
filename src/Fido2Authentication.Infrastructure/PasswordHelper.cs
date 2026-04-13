@@ -6,8 +6,7 @@ public class PasswordHelper : IPasswordHelper
 {
     public void HashPassword(User user, string password)
     {
-        user.PasswordSalt = BCrypt.Net.BCrypt.GenerateSalt();
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, user.PasswordSalt);
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt());
     }
 
     public bool VerifyPassword(User user, string password)

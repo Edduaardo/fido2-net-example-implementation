@@ -30,7 +30,7 @@ namespace Fido2Authentication.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("BLOB");
 
-                    b.Property<Guid>("ManufactorerGuid")
+                    b.Property<Guid?>("ManufacturerGuid")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -75,10 +75,6 @@ namespace Fido2Authentication.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PasswordSalt")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.HasKey("Id");
 
                     b.ToTable("Users");
@@ -86,12 +82,11 @@ namespace Fido2Authentication.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("45f667ad-a2bc-4ada-9b8f-323641b4fb6c"),
+                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
                             DateRegistered = new DateTime(2026, 4, 6, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "admin@system.com",
                             Name = "Admin",
-                            PasswordHash = "$2a$11$hVQvIo3SS4pXq2P9OZN9FupoOPgsoQ6Q9fU9leAX0O6TIn/ruKF8i",
-                            PasswordSalt = "$2a$11$hVQvIo3SS4pXq2P9OZN9Fu"
+                            PasswordHash = "$2a$11$hVQvIo3SS4pXq2P9OZN9FupoOPgsoQ6Q9fU9leAX0O6TIn/ruKF8i"
                         });
                 });
 

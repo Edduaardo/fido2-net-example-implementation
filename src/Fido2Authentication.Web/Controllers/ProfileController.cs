@@ -1,4 +1,6 @@
+using System.Net;
 using Fido2Authentication.Business.Interfaces.Services;
+using Fido2Authentication.Web.ExtensionMethods;
 using Fido2Authentication.Web.Models;
 using Fido2Authentication.Web.ResponseViewModels;
 using Fido2NetLib;
@@ -8,8 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace Fido2Authentication.Web.Controllers;
 
 [Authorize]
-public class ProfileController(IUserService userService) : Controller
+public class ProfileController(
+    ILogger<ProfileController> logger,
+    IUserService userService) : Controller
 {
+    private readonly ILogger<ProfileController> _logger = logger;
     private readonly IUserService _userService = userService;
 
     public async Task<IActionResult> Index() => View(await _userService.GetByEmailAsync(User.Identity!.Name!));
@@ -27,16 +32,20 @@ public class ProfileController(IUserService userService) : Controller
 
             var user = await _userService.GetByEmailAsync(HttpContext.User.Identity!.Name!, cancellationToken);
 
-            if (!_userService.VerifyLogin(user, changePasswordViewModel.CurrentPassword))
+            if (!_userService.VerifyLogin(user!, changePasswordViewModel.CurrentPassword))
                 return View();
 
-            await _userService.ChangePasswordAsync(user, changePasswordViewModel.NewPassword, cancellationToken);
+            await _userService.ChangePasswordAsync(user!, changePasswordViewModel.NewPassword, cancellationToken);
 
-            return View();
+            return RedirectToAction("Security")
+                .SuccessMessage("Passoword changed successfully.");
         }
         catch (Exception ex)
         {
-            throw;
+            _logger.LogError(ex, "ChangePasswordAsync()");
+
+            return RedirectToAction("Security")
+                .ErrorMessage("An error ocurred, try again later.");
         }
     }
 
@@ -48,14 +57,22 @@ public class ProfileController(IUserService userService) : Controller
         {
             return Json(
                 await _userService.PasskeyGetAttestationOptionsAsync(
-                    HttpContext.User.Identity.Name,
+                    HttpContext.User.Identity!.Name!,
                     cancellationToken
                 )
             );
         }
         catch (Exception ex)
         {
-            throw;
+            _logger.LogError(ex, "PasskeyGetAttestationOptionsAsync()");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
     }
 
@@ -73,11 +90,19 @@ public class ProfileController(IUserService userService) : Controller
                 cancellationToken
             );
 
-            return Ok();
+            return Json(new { Message = "Success.", Status = HttpStatusCode.OK });
         }
         catch (Exception ex)
         {
-            throw;
+            _logger.LogError(ex, "SavePasskeyAsync()");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
     }
 
@@ -91,7 +116,7 @@ public class ProfileController(IUserService userService) : Controller
 
             return Json(new
             {
-                data = user.Passkeys.Select(x => new GetUserPasskeysResponseViewModel
+                data = user!.Passkeys.Select(x => new GetUserPasskeysResponseViewModel
                 {
                     Id = x.Id,
                     Name = x.Name,
@@ -101,7 +126,15 @@ public class ProfileController(IUserService userService) : Controller
         }
         catch (Exception ex)
         {
-            throw;
+            _logger.LogError(ex, "GetUserPasskeysAsync()");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
     }
 
@@ -118,7 +151,46 @@ public class ProfileController(IUserService userService) : Controller
         }
         catch (Exception ex)
         {
-            throw;
+            _logger.LogError(ex, "DeleteUserPasskeyAsync()");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
+        }
+    }
+
+    [HttpPut("edit-passkey-name")]
+    public async Task<IActionResult> EditPasskeyNameAsync(
+        [FromBody] ChangePasskeyNameViewModel changePasskeyNameViewModel,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await _userService.GetUserByPasskeyIdAsync(
+                changePasskeyNameViewModel.Id,
+                cancellationToken);
+
+            user.Passkeys.FirstOrDefault(x => x.Id == changePasskeyNameViewModel.Id)?.Name = changePasskeyNameViewModel.Name;
+
+            await _userService.UpdateAsync(user);
+
+            return Json(new { });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DeleteUserPasskeyAsync()");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponseViewModel
+                {
+                    Message = ""
+                }
+            );
         }
     }
 }
