@@ -51,6 +51,7 @@ public class ProfileController(
 
     [HttpGet("passkey-get-attestation-options")]
     public async Task<IActionResult> PasskeyGetAttestationOptionsAsync(
+        bool residentKey,
         CancellationToken cancellationToken)
     {
         try
@@ -58,6 +59,7 @@ public class ProfileController(
             return Json(
                 await _userService.PasskeyGetAttestationOptionsAsync(
                     HttpContext.User.Identity!.Name!,
+                    residentKey,
                     cancellationToken
                 )
             );

@@ -35,7 +35,11 @@ builder.Services.AddFido2(options =>
 {
     options.ServerDomain = "localhost";//"fido2-example.com";
     options.ServerName = "Fido2Authentication";
-    options.Origins = new HashSet<string> { "http://localhost:5000" };
+    options.Origins = new HashSet<string>
+    {
+        "http://localhost:5000",
+        "http://localhost:5145"
+    };
 });
 
 var app = builder.Build();

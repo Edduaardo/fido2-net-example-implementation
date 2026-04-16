@@ -16,8 +16,7 @@ public class DatabaseContext(DbContextOptions<DatabaseContext> options) : DbCont
             Name = "Admin",
             Email = "admin@system.com",
             DateRegistered = DateTime.Parse("2026-04-06T10:00:00"),
-            PasswordHash = "$2a$11$hVQvIo3SS4pXq2P9OZN9FupoOPgsoQ6Q9fU9leAX0O6TIn/ruKF8i"
-            // => PasswordHelper.HashPassword(defaultUser, "123Abc");
+            PasswordHash = "$2a$11$hVQvIo3SS4pXq2P9OZN9FupoOPgsoQ6Q9fU9leAX0O6TIn/ruKF8i" // => PasswordHelper.HashPassword(defaultUser, "123Abc");
         };
 
         modelBuilder.Entity<User>().HasData(defaultUser);

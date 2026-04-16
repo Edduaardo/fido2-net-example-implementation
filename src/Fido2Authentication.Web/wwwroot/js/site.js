@@ -43,10 +43,13 @@ function showToast(
                     ${message}
                 </div>
             </div>
-        </div>`
-        )
+        </div>`)
 
         bootstrap.Toast.getOrCreateInstance(
             document.getElementById('live-toast')
         ).show()
+}
+
+function showLoading() {
+    
 }

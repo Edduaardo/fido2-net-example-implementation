@@ -107,13 +107,16 @@ public class LoginController(
     {
         try
         {
-            await _userService.MakePasskeyAssertionAsync(
-                authenticatorAssertionRawResponse,
+            var user = await _userService.GetUserByPasskeyCredentialIdAsync(
+                authenticatorAssertionRawResponse.RawId,
                 cancellationToken
             );
-           
-            var user = await _userService.GetByEmailAsync(
-                Encoding.UTF8.GetString(authenticatorAssertionRawResponse.Response.UserHandle),
+
+            if (user is null)
+                return BadRequest();
+
+            await _userService.MakePasskeyAssertionAsync(
+                authenticatorAssertionRawResponse,
                 cancellationToken
             );
 

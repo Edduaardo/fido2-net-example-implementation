@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Unicode;
 using Fido2Authentication.Business.Interfaces;
 using Fido2Authentication.Business.Interfaces.Repositories;
 using Fido2Authentication.Business.Interfaces.Services;
@@ -63,6 +62,7 @@ public class UserService(
 
     public async Task<CredentialCreateOptions> PasskeyGetAttestationOptionsAsync(
         string userEmail,
+        bool residentKey = false,
         CancellationToken cancellationToken = default)
     {
         var user = await GetByEmailAsync(userEmail, cancellationToken);
@@ -78,7 +78,7 @@ public class UserService(
             ExcludeCredentials = [.. user.Passkeys.Select(x => new PublicKeyCredentialDescriptor(x.CredentialId))],
             AuthenticatorSelection = new AuthenticatorSelection
             {
-                ResidentKey = ResidentKeyRequirement.Discouraged,
+                ResidentKey = residentKey ? ResidentKeyRequirement.Preferred : ResidentKeyRequirement.Discouraged,
                 UserVerification = UserVerificationRequirement.Preferred
             },
             AttestationPreference = AttestationConveyancePreference.None,
@@ -138,16 +138,19 @@ public class UserService(
     }
 
     public async Task<AssertionOptions> GetPasskeyAssertionOptionsAsync(
-        string userName,
+        string? userName = null,
         string? userVerification = null,
         CancellationToken cancellationToken = default)
     {
-        var user = await GetByEmailAsync(userName, cancellationToken);
+        User? user = null;
+        
+        if (!string.IsNullOrEmpty(userName))
+            user = await GetByEmailAsync(userName, cancellationToken);
 
         var options = _fido2.GetAssertionOptions(new GetAssertionOptionsParams()
         {
-            AllowedCredentials = [.. user.Passkeys.Select(x => new PublicKeyCredentialDescriptor(x.CredentialId))],
-            UserVerification = userVerification?.ToEnum<UserVerificationRequirement>() ?? UserVerificationRequirement.Preferred,
+            AllowedCredentials = [.. user?.Passkeys.Select(x => new PublicKeyCredentialDescriptor(x.CredentialId)) ?? []],
+            UserVerification = userVerification?.ToEnum<UserVerificationRequirement>() ?? UserVerificationRequirement.Discouraged,
             Extensions = new AuthenticationExtensionsClientInputs
             {
                 Extensions = true,
@@ -197,9 +200,7 @@ public class UserService(
     }
 
     public async Task<User?> GetUserByPasskeyIdAsync(Guid passkeyId, CancellationToken cancellationToken = default)
-    {
-        return await _userRepository.GetUserByPasskeyIdAsync(passkeyId, cancellationToken);
-    }
+        => await _userRepository.GetUserByPasskeyIdAsync(passkeyId, cancellationToken);
 
     public async Task DeleteUserPasskeyAsync(Guid passkeyId, CancellationToken cancellationToken = default)
     {
@@ -208,5 +209,15 @@ public class UserService(
         user!.Passkeys.Remove(user.Passkeys.First(x => x.Id == passkeyId));
 
         await _userRepository.UpdateAsync(user, cancellationToken);
+    }
+
+    public async Task<User?> GetUserByPasskeyCredentialIdAsync(
+        byte[] credentialId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _userRepository.GetUserByPasskeyCredentialIdAsync(
+            credentialId,
+            cancellationToken
+        );
     }
 }

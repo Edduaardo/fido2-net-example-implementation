@@ -10,9 +10,15 @@ public interface IUserService
     Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<User?> GetUserByPasskeyIdAsync(Guid passkeyId, CancellationToken cancellationToken = default);
+    Task<User?> GetUserByPasskeyCredentialIdAsync(
+        byte[] passkeyCredentialId,
+        CancellationToken cancellationToken = default);
     bool VerifyLogin(User user, string password);
     Task ChangePasswordAsync(User user, string newPassword, CancellationToken cancellationToken = default);
-    Task<CredentialCreateOptions> PasskeyGetAttestationOptionsAsync(string userEmail, CancellationToken cancellationToken = default);
+    Task<CredentialCreateOptions> PasskeyGetAttestationOptionsAsync(
+        string userEmail,
+        bool residentKey = false,
+        CancellationToken cancellationToken = default);
     Task<RegisteredPublicKeyCredential> SavePasskeyAsync(
         AuthenticatorAttestationRawResponse authenticatorAttestationRawResponse,
         string passkeyName,

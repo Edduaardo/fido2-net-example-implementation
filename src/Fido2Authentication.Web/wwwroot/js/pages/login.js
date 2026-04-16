@@ -1,13 +1,17 @@
 $(() => {
     $('#login-with-passkey').on('click', async () => {
-        const login = $('#login').val()
+        const login = $('#login')
         
-        if (!$('#login-form').validate().element('#login'))
+        if (login.val() && !$('#login-form').validate().element('#login')) {
+            $('#login').addClass('is-invalid')
             return
+        } else {
+            $('#login').removeClass('is-invalid')
+        }
         
         let assertionOptions
         try {
-            assertionOptions = await fetchAssetionOptions(login)
+            assertionOptions = await fetchAssetionOptions(login.val())
         } catch (_) {
             showToastError('An error occurred while trying to get options from the server, please try again later.')
             return
@@ -31,8 +35,6 @@ $(() => {
             return
         }
 
-        credential.userHandle = login
-        
         let assertionResult
         try {
             assertionResult = await assertCredential(credential)
@@ -49,13 +51,14 @@ $(() => {
     validationSettings.onkeyup = null
 
     $('#login-form').bind('invalid-form.validate', () => {
-        $("#change-password-form").addClass('was-validated')
+        $("#login-form").addClass('was-validated')
     })
 })
 
-function fetchAssetionOptions(login) {
+async function fetchAssetionOptions(login) {
     return $.ajax({
         url: '/get-passkey-assertion-options',
+        method: 'GET',
         data: {
             login: login
         }
@@ -66,18 +69,7 @@ function assertCredential(credential) {
     return $.ajax({
         url: '/make-passkey-assertion',
         method: 'POST',
-        data: JSON.stringify({
-            id: credential.id,
-            rawId: coerceToBase64Url(new Uint8Array(credential.rawId)),
-            type: credential.type,
-            extensions: credential.getClientExtensionResults(),
-            response: {
-                authenticatorData: coerceToBase64Url(new Uint8Array(credential.response.authenticatorData)),
-                clientDataJSON: coerceToBase64Url(new Uint8Array(credential.response.clientDataJSON)),
-                signature: coerceToBase64Url(new Uint8Array(credential.response.signature)),
-                userHandle: coerceToBase64Url(coerceToArrayBuffer(btoa(credential.userHandle)))
-            }
-        }),
+        data: JSON.stringify(credential), // credentials.toJSON() is called explicity
         dataType: 'json',
         contentType: 'application/json'
     })

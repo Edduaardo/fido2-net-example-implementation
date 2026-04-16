@@ -64,8 +64,8 @@ $(() => {
             },
             {
                 data: 'id',
-                render: () => `<button type="button" title="Edit passkey name" class="btn btn-info text-white" onclick="editPasskey(this)"><i class="bi bi-pen"></i></button>
-                <button type="button" title="Remove" class="btn btn-danger" onclick="deletePasskey(this)"><i class="bi bi-trash"></i></button>`
+                render: () => `<button type="button" title="Edit passkey name" class="btn btn-info text-white me-1" onclick="editPasskey(this)"><i class="bi bi-pen"></i>`
+                    + `</button><button type="button" title="Remove" class="btn btn-danger" onclick="deletePasskey(this)"><i class="bi bi-trash"></i></button>`
             }
         ],
         ajax: '/get-user-passkeys'
@@ -73,7 +73,7 @@ $(() => {
 
     $('#add-passkey').on('click', async () => {
         const {
-            value: passkeyName,
+            value: passkeyNameForm,
             isConfirmed
         } = await getPasskeyName()
 
@@ -81,7 +81,7 @@ $(() => {
 
         let attestationOptions
         try {
-            attestationOptions = await fetchAttestationOptions()
+            attestationOptions = await fetchAttestationOptions(passkeyNameForm.isResidentKey)
         } catch (_) {
             showToastError('An error occurred while trying to get options from the server, try again later.')
             return
@@ -108,7 +108,7 @@ $(() => {
             return
         }
 
-        credentials.name = passkeyName
+        credentials.name = passkeyNameForm.passkeyName
         await savePasskey(credentials)
     })
 })
@@ -117,18 +117,39 @@ function getPasskeyName() {
     return Swal.fire({
         title: 'Give a name for this new Passkey',
         input: 'text',
+        html: `<div class="d-flex justify-content-center">` +
+                `<div class="form-check" style="text-align: unset !important;">` +
+                `<input class="form-check-input" type="checkbox" id="resident-key-check" checked />` +
+                `<label class="form-check-label" for="resident-key-check">` +
+                    'Resident Key' + `<i class="bi bi-question-circle ms-1" data-bs-toggle="tooltip" data-bs-title="Allows login without typing your username"></i>` +
+                '</label>' +
+            '</div>' +
+        '</div>',
         showCloseButton: true,
         showCancelButton: true,
         inputValidator: (value) => {
-            if (!value) return 'Please give your passkey a name';
+            if (!value) return 'Please give your passkey a name'
+        },
+        preConfirm: () => {
+            return {
+                isResidentKey: $('#resident-key-check').is(':checked'),
+                passkeyName: $('#swal2-input').val()
+            }
+        },
+        willOpen: () => { // Setting up the tooltip
+            [...document.querySelectorAll('[data-bs-toggle="tooltip"]')]
+                .map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
         }
     })
 }
 
-function fetchAttestationOptions() {
+function fetchAttestationOptions(residentKey) {
     return $.ajax({
         url: '/passkey-get-attestation-options',
-        method: 'GET'
+        method: 'GET',
+        data: {
+            residentKey: residentKey
+        }
     })
 }
 
@@ -137,7 +158,7 @@ function savePasskey(credentials) {
         url: `/save-passkey/${credentials.name}`,
         method: 'POST',
         // New:
-        data: JSON.stringify(credentials.toJSON()),
+        data: JSON.stringify(credentials), // credentials.toJSON() is called explicity
         // Old:
         // data: JSON.stringify({
         //     id: credentials.id,
